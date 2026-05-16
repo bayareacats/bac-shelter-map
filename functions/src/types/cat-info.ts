@@ -7,6 +7,8 @@ interface ShelterluvCat {
   CoverPhoto?: string;
   LastIntakeUnixTime?: number;
   InFoster: boolean;
+  DOBUnixTime?: number | string;
+  Status?: string;
 }
 
 export { ShelterluvCat };

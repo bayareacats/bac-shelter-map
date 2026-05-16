@@ -2,7 +2,7 @@ import { useDroppable } from "@dnd-kit/core";
 import type { Cat } from "../types/Cat";
 import type { Room } from "../types/Room";
 import { CatIcon } from "./CatIcon";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 
@@ -40,10 +40,13 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
 
   // Refs to access latest values inside window event listeners
   const latestRoomRef = useRef(room);
-  latestRoomRef.current = room;
 
   const propsRef = useRef({ onUpdate, onCommit });
-  propsRef.current = { onUpdate, onCommit };
+
+  useEffect(() => {
+    latestRoomRef.current = room;
+    propsRef.current = { onUpdate, onCommit };
+  }, [room, onUpdate, onCommit]);
 
   const GRID_SIZE = 20;
   const snap = (val: number) => Math.round(val / GRID_SIZE) * GRID_SIZE;
@@ -375,7 +378,6 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
     </g >
   );
 }
-
 
 
 

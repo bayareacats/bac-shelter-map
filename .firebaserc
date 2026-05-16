@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "bayareacats-38b74"
+    "default": "bayareacats-38b74",
+    "test": "bayareacats-test"
   }
 }

@@ -5,9 +5,10 @@ export interface Cat {
   color?: string | null;
   pattern?: string | null;
   intakeDate?: number | null; // Unix timestamp
+  birthDate?: number | null; // Unix timestamp (seconds) when known
   photoUrl?: string | null;
   inFoster: boolean;
   roomId?: string | null;
   dividerSide?: "left" | "right" | null;
-  status: "in_custody" | "adopted";
+  Status: string | null;
 }

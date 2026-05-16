@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { collection, doc, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import { onSnapshot } from "firebase/firestore";
@@ -15,6 +15,9 @@ import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
 import Tooltip from "@mui/material/Tooltip";
 
+const MINIMUM_AGE_SECONDS = (7 * 7 + 3) * 24 * 60 * 60;
+const EXCLUDED_SHELTERLUV_STATUS = "Unavailable In-Foster (Underage)";
+
 function App() {
   const [cats, setCats] = useState<Cat[]>([]);
   const [activeCat, setActiveCat] = useState<Cat | null>(null);
@@ -23,6 +26,7 @@ function App() {
   const [editMode, setEditMode] = useState(false);
 
   const [loading, setLoading] = useState(true);
+  const [currentUnixSeconds] = useState(() => Math.floor(Date.now() / 1000));
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -100,18 +104,34 @@ function App() {
   }
 
 
-  // Get in custody cats (not adopted yet)
-  const inCustodyCats = cats.filter(
-    (c) => c.status === "in_custody"
+  const visibleStatusCats = useMemo(
+    () => cats.filter((c) => c.Status != null && c.Status !== "Adopted"),
+    [cats]
+  );
+
+  // Exclude very young kittens (< 7 weeks + 3 days) when birth info is available
+  const isAtLeastMinimumAge = useCallback((cat: Cat) => {
+    if (cat.birthDate != null) {
+      return currentUnixSeconds - cat.birthDate >= MINIMUM_AGE_SECONDS;
+    }
+    // If no birthDate info, keep the cat in lists
+    return true;
+  }, [currentUnixSeconds]);
+
+  const displayCats = useMemo(
+    () => visibleStatusCats.filter(
+      (cat) => cat.Status !== EXCLUDED_SHELTERLUV_STATUS && isAtLeastMinimumAge(cat)
+    ),
+    [visibleStatusCats, isAtLeastMinimumAge]
   );
 
   // Split cats into shelter vs foster
   const { shelterCats, fosterCats } = useMemo(() => {
     return {
-      shelterCats: inCustodyCats.filter((c) => !c.inFoster),
-      fosterCats: inCustodyCats.filter((c) => c.inFoster),
+      shelterCats: displayCats.filter((c) => !c.inFoster),
+      fosterCats: displayCats.filter((c) => c.inFoster),
     };
-  }, [inCustodyCats]);
+  }, [displayCats]);
 
   // Get unassigned shelter cats for the list
   const unassignedShelterCats = useMemo(() => {
@@ -282,7 +302,7 @@ function App() {
               marginBottom: "0.5rem",
             }}
           >
-            <h3 style={{ margin: 0 }}>{`Floorplan (${inCustodyCats.filter(c => c.roomId).length}🐱)`}</h3>
+            <h3 style={{ margin: 0 }}>{`Floorplan (${displayCats.filter(c => c.roomId).length}🐱)`}</h3>
             <Tooltip title={editMode ? "Exit Edit Mode" : "Edit Floorplan"}>
               <IconButton
                 onClick={() => setEditMode((v) => !v)}
@@ -316,7 +336,7 @@ function App() {
           >
             <FloorPlan
               rooms={rooms}
-              cats={inCustodyCats}
+              cats={displayCats}
               editMode={editMode}
               onRoomUpdate={handleRoomUpdate}
               onRoomCommit={handleRoomCommit}
@@ -325,9 +345,9 @@ function App() {
         </section>
 
 
-        {/* 🏡 Foster (Read-only) */}
+        {/* Next Up */}
         <CatList
-          title={`In Foster (${unassignedFosterCats.length}🐱)`}
+          title={`Next Up (${unassignedFosterCats.length}🐱)`}
           cats={unassignedFosterCats}
           draggable
           droppableId="foster-list"
