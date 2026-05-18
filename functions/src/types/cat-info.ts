@@ -8,7 +8,12 @@ interface ShelterluvCat {
   LastIntakeUnixTime?: number;
   InFoster: boolean;
   DOBUnixTime?: number | string;
+  LitterGroupId?: number | string | null;
   Status?: string;
+  CurrentLocation?: {
+    Tier1?: string;
+    Tier2?: string;
+  };
 }
 
 export { ShelterluvCat };

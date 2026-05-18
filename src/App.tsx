@@ -10,7 +10,12 @@ import { CatDragPreview } from "./components/CatDragPreview";
 import { updateCatRoom } from "./RoomUpdater";
 import { validateRoomAssignments } from "./RoomValidator";
 import type { Room } from "./types/Room";
+import {
+  getDividerSideAssignments,
+  roomNeedsDivider,
+} from "./roomDividerAssignments";
 import IconButton from "@mui/material/IconButton";
+import Button from "@mui/material/Button";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
 import Tooltip from "@mui/material/Tooltip";
@@ -143,6 +148,45 @@ function App() {
     return fosterCats.filter((cat) => !cat.roomId);
   }, [fosterCats]);
 
+  const resettableShelterCats = useMemo(
+    () => visibleStatusCats.filter((cat) => !cat.inFoster),
+    [visibleStatusCats]
+  );
+
+  async function handleResetShelterluvRooms() {
+    if (!resettableShelterCats.length) return;
+    const dividerSideAssignments = getDividerSideAssignments(resettableShelterCats);
+
+    const updates = resettableShelterCats.map((cat) => ({
+      ...cat,
+      roomId: cat.shelterluvRoomId ?? null,
+      dividerSide: dividerSideAssignments.get(cat.id) ?? null,
+      manualRoomOverride: false,
+    }));
+
+    setCats((prev) =>
+      prev.map((cat) => {
+        const update = updates.find((item) => item.id === cat.id);
+        return update ?? cat;
+      })
+    );
+
+    try {
+      await Promise.all(
+        updates.map((cat) =>
+          updateDoc(doc(db, "cats", cat.id), {
+            roomId: cat.shelterluvRoomId ?? null,
+            dividerSide: dividerSideAssignments.get(cat.id) ?? null,
+            manualRoomOverride: false,
+            updatedAt: new Date(),
+          })
+        )
+      );
+    } catch (error) {
+      console.error("Failed to reset Shelterluv rooms", error);
+    }
+  }
+
 
   function handleDragStart(event: DragStartEvent) {
     const cat = cats.find((c) => c.id === event.active.id);
@@ -221,6 +265,7 @@ function App() {
             ...cat,
             roomId: newRoomId,
             dividerSide: newDividerSide,
+            manualRoomOverride: true,
           }
           : cat
       )
@@ -242,7 +287,7 @@ function App() {
             ? {
               ...cat,
               roomId: null,
-              roomSide: undefined,
+              dividerSide: undefined,
             }
             : cat
         )
@@ -303,6 +348,31 @@ function App() {
             }}
           >
             <h3 style={{ margin: 0 }}>{`Floorplan (${displayCats.filter(c => c.roomId).length}🐱)`}</h3>
+            <Tooltip title="Reset room assignments from Shelterluv locations">
+              <span>
+                <Button
+                  onClick={handleResetShelterluvRooms}
+                  disabled={!resettableShelterCats.length}
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    minWidth: 58,
+                    height: 26,
+                    color: "#e2e8f0",
+                    borderColor: "#64748b",
+                    textTransform: "none",
+                    fontSize: 12,
+                    lineHeight: 1,
+                    "&:hover": {
+                      borderColor: "#94a3b8",
+                      backgroundColor: "rgba(148, 163, 184, 0.12)",
+                    },
+                  }}
+                >
+                  Reset
+                </Button>
+              </span>
+            </Tooltip>
             <Tooltip title={editMode ? "Exit Edit Mode" : "Edit Floorplan"}>
               <IconButton
                 onClick={() => setEditMode((v) => !v)}
@@ -335,7 +405,10 @@ function App() {
             }}
           >
             <FloorPlan
-              rooms={rooms}
+              rooms={rooms.map((room) => ({
+                ...room,
+                divided: room.divided || roomNeedsDivider(displayCats.filter((cat) => cat.roomId === room.id)),
+              }))}
               cats={displayCats}
               editMode={editMode}
               onRoomUpdate={handleRoomUpdate}

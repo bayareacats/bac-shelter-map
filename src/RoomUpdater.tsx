@@ -11,6 +11,7 @@ export async function updateCatRoom(
   await updateDoc(ref, {
     roomId,
     dividerSide: dividerSide ?? null,
+    manualRoomOverride: true,
     updatedAt: new Date(),
   });
 }

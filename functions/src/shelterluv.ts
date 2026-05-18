@@ -5,6 +5,11 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { logger } from "firebase-functions/v2";
 import { ShelterluvCat } from "./types/cat-info.js";
 import axios from "axios";
+import {
+    getDividerSideAssignments,
+    getRoomIdForShelterluvLocation,
+    getShelterluvLocationLabel,
+} from "./location-mapping.js";
 
 function toUnixSecondsFromPossibleTimestamp(v: unknown): number | null {
     if (v == null) return null;
@@ -75,49 +80,81 @@ export const syncShelterluvCats = onSchedule(
                 apiCatIds.add(cat.ID.toString());
             }
 
-            const batch = db.batch();
-
-            allCats.forEach((cat: ShelterluvCat) => {
-                const ref = db.collection("cats").doc(cat.ID);
-
-                const birthDate = toUnixSecondsFromPossibleTimestamp(cat.DOBUnixTime);
-
-                batch.set(
-                    ref,
-                    {
-                        id: cat.ID,
-                        name: cat.Name,
-                        sex: cat.Sex ?? null,
-                        color: cat.Color ?? null,
-                        pattern: cat.Pattern ?? null,
-                        photoUrl: cat.CoverPhoto ?? null,
-                        intakeDate: cat.LastIntakeUnixTime ?? null,
-                        birthDate: birthDate,
-                        inFoster: cat.InFoster,
-                        Status: cat.Status ?? null,
-                        lastSynced: FieldValue.serverTimestamp()
-                    },
-                    { merge: true }
-                );
-            });
+            const dividerSideAssignments = getDividerSideAssignments(allCats);
 
             const snapshot = await db
                 .collection("cats")
                 .get();
+            const existingCatsById = new Map(snapshot.docs.map((doc) => [doc.id, doc.data()]));
+
+            let batch = db.batch();
+            let writesInBatch = 0;
+
+            async function queueWrite(write: () => void) {
+                write();
+                writesInBatch += 1;
+                if (writesInBatch >= 450) {
+                    await batch.commit();
+                    batch = db.batch();
+                    writesInBatch = 0;
+                }
+            }
+
+            for (const cat of allCats) {
+                const ref = db.collection("cats").doc(cat.ID);
+
+                const birthDate = toUnixSecondsFromPossibleTimestamp(cat.DOBUnixTime);
+                const shelterluvLocationLabel = getShelterluvLocationLabel(cat.CurrentLocation);
+                const shelterluvRoomId = getRoomIdForShelterluvLocation(cat.CurrentLocation);
+                const existingCat = existingCatsById.get(cat.ID.toString());
+                const manualRoomOverride = existingCat?.manualRoomOverride === true;
+
+                const update: Record<string, unknown> = {
+                    id: cat.ID,
+                    name: cat.Name,
+                    sex: cat.Sex ?? null,
+                    color: cat.Color ?? null,
+                    pattern: cat.Pattern ?? null,
+                    photoUrl: cat.CoverPhoto ?? null,
+                    intakeDate: cat.LastIntakeUnixTime ?? null,
+                    birthDate: birthDate,
+                    litterGroupId: cat.LitterGroupId?.toString() ?? null,
+                    inFoster: cat.InFoster,
+                    Status: cat.Status ?? null,
+                    shelterluvLocation: cat.CurrentLocation ?? null,
+                    shelterluvLocationLabel,
+                    shelterluvRoomId,
+                    lastSynced: FieldValue.serverTimestamp()
+                };
+
+                if (!cat.InFoster && shelterluvRoomId && !manualRoomOverride) {
+                    update.roomId = shelterluvRoomId;
+                    update.dividerSide = dividerSideAssignments.get(cat.ID.toString()) ?? null;
+                    update.manualRoomOverride = false;
+                }
+
+                await queueWrite(() => {
+                    batch.set(ref, update, { merge: true });
+                });
+            }
 
             logger.info("Shelterluv cats in DB to check for adoption: ", snapshot.size);
 
-            snapshot.docs.forEach((doc) => {
+            for (const doc of snapshot.docs) {
                 if (!apiCatIds.has(doc.id)) {
-                    batch.update(doc.ref, {
-                        Status: "Adopted",
-                        roomId: null,        // remove from floorplan
-                        adoptedAt: new Date(),
+                    await queueWrite(() => {
+                        batch.update(doc.ref, {
+                            Status: "Adopted",
+                            roomId: null,        // remove from floorplan
+                            adoptedAt: new Date(),
+                        });
                     });
                 }
-            });
+            }
 
-            await batch.commit();
+            if (writesInBatch > 0) {
+                await batch.commit();
+            }
 
             logger.info(
                 `Shelterluv sync completed.`

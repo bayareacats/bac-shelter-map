@@ -2,6 +2,11 @@ import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import axios from "axios";
 import { ShelterluvCat } from "./types/cat-info.js";
+import {
+    getDividerSideAssignments,
+    getRoomIdForShelterluvLocation,
+    getShelterluvLocationLabel,
+} from "./location-mapping.js";
 
 interface ShelterluvAnimalsResponse {
     animals: ShelterluvCat[];
@@ -58,18 +63,39 @@ async function main() {
     const db = getFirestore();
 
     const animals = await fetchInCustodyAnimals(apiKey);
+    const dividerSideAssignments = getDividerSideAssignments(animals);
     const snapshot = await db.collection("cats").get();
-    const existingCatIds = new Set(snapshot.docs.map((doc) => doc.id));
+    const existingCatsById = new Map(snapshot.docs.map((doc) => [doc.id, doc.data()]));
 
     const updates = animals
-        .filter((animal) => existingCatIds.has(animal.ID.toString()))
-        .map((animal) => ({
-            id: animal.ID.toString(),
-            name: animal.Name,
-            Status: animal.Status ?? null,
-        }));
+        .filter((animal) => existingCatsById.has(animal.ID.toString()))
+        .map((animal) => {
+            const id = animal.ID.toString();
+            const existingCat = existingCatsById.get(id);
+            const shelterluvLocationLabel = getShelterluvLocationLabel(animal.CurrentLocation);
+            const shelterluvRoomId = getRoomIdForShelterluvLocation(animal.CurrentLocation);
+            const fields: Record<string, unknown> = {
+                Status: animal.Status ?? null,
+                litterGroupId: animal.LitterGroupId?.toString() ?? null,
+                shelterluvLocation: animal.CurrentLocation ?? null,
+                shelterluvLocationLabel,
+                shelterluvRoomId,
+            };
 
-    const missing = animals.filter((animal) => !existingCatIds.has(animal.ID.toString()));
+            if (!animal.InFoster && shelterluvRoomId && existingCat?.manualRoomOverride !== true) {
+                fields.roomId = shelterluvRoomId;
+                fields.dividerSide = dividerSideAssignments.get(id) ?? null;
+                fields.manualRoomOverride = false;
+            }
+
+            return {
+                id,
+                name: animal.Name,
+                fields,
+            };
+        });
+
+    const missing = animals.filter((animal) => !existingCatsById.has(animal.ID.toString()));
 
     console.log(
         JSON.stringify(
@@ -78,6 +104,7 @@ async function main() {
                 projectId,
                 fetchedInCustodyAnimals: animals.length,
                 existingDocsToUpdate: updates.length,
+                mappedShelterluvRooms: updates.filter((update) => update.fields.shelterluvRoomId).length,
                 missingDocsSkipped: missing.length,
                 sampleUpdates: updates.slice(0, 10),
             },
@@ -94,14 +121,12 @@ async function main() {
     for (let i = 0; i < updates.length; i += 500) {
         const batch = db.batch();
         for (const update of updates.slice(i, i + 500)) {
-            batch.update(db.collection("cats").doc(update.id), {
-                Status: update.Status,
-            });
+            batch.update(db.collection("cats").doc(update.id), update.fields);
         }
         await batch.commit();
     }
 
-    console.log(`Updated Status on ${updates.length} Firestore cat documents.`);
+    console.log(`Updated Status and Shelterluv location on ${updates.length} Firestore cat documents.`);
 }
 
 main().catch((error) => {
