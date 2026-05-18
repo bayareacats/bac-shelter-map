@@ -12,11 +12,11 @@ export function CatDragPreview({ cat }: Props) {
         alignItems: "center",
         gap: "0.5rem",
         padding: "0.5rem 0.75rem",
-        background: "#ffffff",
-        color: "#172033",
-        border: "1px solid #93c5fd",
+        background: "#334155",
+        color: "#fff",
+        border: "1px solid #64748b",
         borderRadius: "8px",
-        boxShadow: "0 8px 24px rgba(15, 23, 42, 0.16)",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
         pointerEvents: "none",
       }}
     >

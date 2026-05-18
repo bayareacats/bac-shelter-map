@@ -202,11 +202,11 @@ export function FloorPlan({ cats, rooms, editMode, onRoomUpdate, onRoomCommit }:
       style={{
         width: "100%",
         height: "100%",
-        backgroundColor: "#ffffff",
-        border: "1px solid #cbd5e1",
+        backgroundColor: "#1e293b",
+        border: "1px solid #334155",
         borderRadius: 16,
         overflow: "hidden",
-        boxShadow: "0 2px 10px rgba(15, 23, 42, 0.08)",
+        boxShadow: "inset 0 0 20px rgba(0,0,0,0.5)",
         cursor: isDragging ? "grabbing" : "grab",
         touchAction: "none", // Prevent browser scrolling
         position: "relative",
@@ -218,11 +218,10 @@ export function FloorPlan({ cats, rooms, editMode, onRoomUpdate, onRoomCommit }:
           size="small"
           onClick={resetView}
           sx={{
-            backgroundColor: "#ffffff",
-            border: "1px solid #bfdbfe",
-            boxShadow: "0 1px 2px rgba(15, 23, 42, 0.08)",
-            color: "#1d4ed8",
-            "&:hover": { backgroundColor: "#eff6ff", boxShadow: "none" }
+            backgroundColor: "rgba(33, 33, 33, 0.8)",
+            backdropFilter: "blur(4px)",
+            color: "#fff",
+            "&:hover": { backgroundColor: "rgba(33, 33, 33, 1)" }
           }}
         >
           Reset View
@@ -233,11 +232,10 @@ export function FloorPlan({ cats, rooms, editMode, onRoomUpdate, onRoomCommit }:
           onClick={() => handleZoom(1.2)}
           sx={{
             minWidth: "40px",
-            backgroundColor: "#ffffff",
-            border: "1px solid #bfdbfe",
-            boxShadow: "0 1px 2px rgba(15, 23, 42, 0.08)",
-            color: "#1d4ed8",
-            "&:hover": { backgroundColor: "#eff6ff", boxShadow: "none" },
+            backgroundColor: "rgba(33, 33, 33, 0.8)",
+            backdropFilter: "blur(4px)",
+            color: "#fff",
+            "&:hover": { backgroundColor: "rgba(33, 33, 33, 1)" },
             fontSize: "1.6rem",
             padding: "0"
           }}
@@ -250,11 +248,10 @@ export function FloorPlan({ cats, rooms, editMode, onRoomUpdate, onRoomCommit }:
           onClick={() => handleZoom(0.8)}
           sx={{
             minWidth: "40px",
-            backgroundColor: "#ffffff",
-            border: "1px solid #bfdbfe",
-            boxShadow: "0 1px 2px rgba(15, 23, 42, 0.08)",
-            color: "#1d4ed8",
-            "&:hover": { backgroundColor: "#eff6ff", boxShadow: "none" },
+            backgroundColor: "rgba(33, 33, 33, 0.8)",
+            backdropFilter: "blur(4px)",
+            color: "#fff",
+            "&:hover": { backgroundColor: "rgba(33, 33, 33, 1)" },
             fontSize: "1.6rem",
             padding: "0"
           }}
@@ -285,7 +282,7 @@ export function FloorPlan({ cats, rooms, editMode, onRoomUpdate, onRoomCommit }:
             outline: "none",
           }}
         >
-          <rect x="-5000" y="-5000" width="10000" height="10000" fill="#ffffff" />
+          <rect x="-5000" y="-5000" width="10000" height="10000" fill="#1e293b" />
 
           {rooms.map((room) => (<RoomSvg
             key={room.id}

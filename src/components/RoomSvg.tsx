@@ -12,6 +12,44 @@ interface RoomProps {
   onCommit: (room: Room) => void;
 }
 
+function getRoomCornerRadii(roomId: string, radius: number) {
+  switch (roomId) {
+    case "room-1-k1":
+      return { topLeft: radius, topRight: 0, bottomRight: 0, bottomLeft: 0 };
+    case "room-1-k3":
+      return { topLeft: 0, topRight: 0, bottomRight: 0, bottomLeft: radius };
+    case "room-1-k4":
+      return { topLeft: 0, topRight: radius, bottomRight: 0, bottomLeft: 0 };
+    case "room-1-k6":
+      return { topLeft: 0, topRight: 0, bottomRight: radius, bottomLeft: 0 };
+    case "room-1-k2":
+    case "room-1-k5":
+      return { topLeft: 0, topRight: 0, bottomRight: 0, bottomLeft: 0 };
+    default:
+      return { topLeft: radius, topRight: radius, bottomRight: radius, bottomLeft: radius };
+  }
+}
+
+function roundedRectPath(width: number, height: number, radii: ReturnType<typeof getRoomCornerRadii>) {
+  const tl = Math.min(radii.topLeft, width / 2, height / 2);
+  const tr = Math.min(radii.topRight, width / 2, height / 2);
+  const br = Math.min(radii.bottomRight, width / 2, height / 2);
+  const bl = Math.min(radii.bottomLeft, width / 2, height / 2);
+
+  return [
+    `M ${tl} 0`,
+    `H ${width - tr}`,
+    tr ? `Q ${width} 0 ${width} ${tr}` : `L ${width} 0`,
+    `V ${height - br}`,
+    br ? `Q ${width} ${height} ${width - br} ${height}` : `L ${width} ${height}`,
+    `H ${bl}`,
+    bl ? `Q 0 ${height} 0 ${height - bl}` : `L 0 ${height}`,
+    `V ${tl}`,
+    tl ? `Q 0 0 ${tl} 0` : "L 0 0",
+    "Z",
+  ].join(" ");
+}
+
 export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps) {
   /* ---------------- DROPPABLES ---------------- */
 
@@ -121,6 +159,7 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
     : (room.width - (PADDING * 2));
 
   const cols = Math.max(1, Math.floor(availableWidth / (ITEM_WIDTH + ITEM_GAP)));
+  const roomPath = roundedRectPath(room.width, room.height, getRoomCornerRadii(room.id, 8));
 
   const containerStyle: React.CSSProperties = {
     width: "100%",
@@ -147,7 +186,7 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
     gridAutoRows: "40px",
     alignItems: "start",
     borderRadius: 3,
-    background: isOver ? "rgba(37, 99, 235, 0.12)" : "transparent",
+    background: isOver ? "rgba(99, 102, 241, 0.28)" : "transparent",
     transition: "background-color 0.12s ease",
   });
 
@@ -156,17 +195,14 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
     >
 
       {/* Room outline */}
-      <rect
-        width={room.width}
-        height={room.height}
-        rx={8}
-        ry={8}
+      <path
+        d={roomPath}
         fill={
           isWholeOver || isLeftOver || isRightOver
-            ? "#eff6ff"
-            : "#ffffff"
+            ? "rgba(79, 70, 229, 0.4)"
+            : "#334155"
         }
-        stroke="#94a3b8"
+        stroke="#64748b"
         strokeWidth={1.25}
         cursor={editMode ? "move" : "default"}
         onMouseDown={onMouseDownMove}
@@ -179,7 +215,7 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
           y1={0}
           x2={room.width / 2}
           y2={room.height}
-          stroke="#2563eb"
+          stroke="#94a3b8"
           strokeDasharray="2 2"
           strokeWidth={0.5}
           pointerEvents="none"
@@ -191,7 +227,7 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
         x={8}
         y={14}
         fontSize={9}
-        fill="#172033"
+        fill="#e2e8f0"
         pointerEvents="none"
         fontFamily="monospace"
         fontWeight="bold"
@@ -261,12 +297,12 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
               padding: 0,
               borderRadius: "4px",
               border: room.divided
-                ? "1px solid #60a5fa"
-                : "1px solid #cbd5e1",
+                ? "1px solid rgba(147, 197, 253, 0.55)"
+                : "1px solid rgba(148, 163, 184, 0.25)",
               background: room.divided
-                ? "#dbeafe"
-                : "#f8fafc",
-              color: room.divided ? "#1d4ed8" : "#475569",
+                ? "rgba(37, 99, 235, 0.78)"
+                : "rgba(71, 85, 105, 0.58)",
+              color: room.divided ? "#fff" : "rgba(226, 232, 240, 0.72)",
               fontSize: "8px",
               fontWeight: 700,
               fontFamily: "inherit",

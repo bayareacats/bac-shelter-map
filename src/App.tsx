@@ -338,8 +338,8 @@ function App() {
           padding: "1rem",
           boxSizing: "border-box",
           overflow: "hidden",
-          background: "#ffffff",
-          color: "#172033"
+          background: "#0f172a",
+          color: "#f1f5f9"
         }}
       >
         {/* 🐈 In-Shelter (Draggable) */}
@@ -382,15 +382,15 @@ function App() {
                   sx={{
                     minWidth: 58,
                     height: 26,
-                    color: "#1d4ed8",
-                    borderColor: "#93c5fd",
-                    backgroundColor: "#ffffff",
+                    color: "#e2e8f0",
+                    borderColor: "#64748b",
+                    backgroundColor: "transparent",
                     textTransform: "none",
                     fontSize: 12,
                     lineHeight: 1,
                     "&:hover": {
-                      borderColor: "#2563eb",
-                      backgroundColor: "#eff6ff",
+                      borderColor: "#94a3b8",
+                      backgroundColor: "rgba(148, 163, 184, 0.12)",
                     },
                     "&.Mui-disabled": {
                       color: "#94a3b8",
@@ -410,15 +410,17 @@ function App() {
                 sx={{
                   minWidth: 58,
                   height: 26,
-                  color: "#1d4ed8",
-                  borderColor: "#93c5fd",
-                  backgroundColor: "#ffffff",
+                  color: "#cbd5e1",
+                  borderColor: "#475569",
+                  backgroundColor: "rgba(15, 23, 42, 0.35)",
                   textTransform: "none",
                   fontSize: 12,
                   lineHeight: 1,
+                  boxShadow: "none",
                   "&:hover": {
-                    borderColor: "#2563eb",
-                    backgroundColor: "#eff6ff",
+                    color: "#e2e8f0",
+                    borderColor: "#64748b",
+                    backgroundColor: "rgba(148, 163, 184, 0.12)",
                   },
                 }}
               >

@@ -30,7 +30,7 @@ export function CatList({ cats, draggable = false, title, droppableId }: Props) 
                         flexDirection: "column",
                         flexShrink: 0,
                         marginBottom: "0.5rem",
-                        color: "#172033"
+                        color: "#f1f5f9"
                     }}
                 >
                     <h3 style={{ margin: 0 }}>{title}</h3>
@@ -46,11 +46,11 @@ export function CatList({ cats, draggable = false, title, droppableId }: Props) 
                 <div
                     ref={droppableId ? setNodeRef : undefined}
                     style={{
-                        border: "1px solid #cbd5e1",
+                        border: "1px solid #334155",
                         borderRadius: "14px",
                         overflow: "hidden",
-                        backgroundColor: "#ffffff",
-                        boxShadow: "0 2px 8px rgba(15, 23, 42, 0.08)",
+                        backgroundColor: "#1e293b",
+                        boxShadow: "0 4px 10px rgba(0, 0, 0, 0.24)",
                         flex: 1,
                         minHeight: 0,
                         boxSizing: "border-box",
@@ -62,9 +62,9 @@ export function CatList({ cats, draggable = false, title, droppableId }: Props) 
                         flex: 1,
                         overflowY: "auto",
                         padding: "0.5rem",
-                        background: isOver ? "#eff6ff" : "transparent",
+                        background: isOver ? "rgba(99, 102, 241, 0.2)" : "transparent",
                         transition: "background-color 0.2s ease",
-                        color: "#172033",
+                        color: "#f1f5f9",
 
                     }}
                 >
