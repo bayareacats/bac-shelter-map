@@ -317,6 +317,10 @@ function App() {
     return <div style={{ padding: "1rem" }}>Loading cats…</div>;
   }
 
+  function handlePrintFloorplan() {
+    window.print();
+  }
+
   return (
     <DndContext
       sensors={sensors}
@@ -349,6 +353,7 @@ function App() {
 
         {/* 🗺️ Floorplan */}
         <section
+          className="floorplan-section"
           style={{
             display: "flex",
             flexDirection: "column",
@@ -358,6 +363,7 @@ function App() {
           }}
         >
           <div
+            className="floorplan-toolbar"
             style={{
               display: "flex",
               alignItems: "center",
@@ -396,10 +402,34 @@ function App() {
                 </Button>
               </span>
             </Tooltip>
+            <Tooltip title="">
+              <Button
+                onClick={handlePrintFloorplan}
+                size="small"
+                variant="outlined"
+                sx={{
+                  minWidth: 58,
+                  height: 26,
+                  color: "#1d4ed8",
+                  borderColor: "#93c5fd",
+                  backgroundColor: "#ffffff",
+                  textTransform: "none",
+                  fontSize: 12,
+                  lineHeight: 1,
+                  "&:hover": {
+                    borderColor: "#2563eb",
+                    backgroundColor: "#eff6ff",
+                  },
+                }}
+              >
+                Print
+              </Button>
+            </Tooltip>
           </div>
 
           {/* SVG container */}
           <div
+            className="floorplan-shell"
             style={{
               flex: 1,
               minHeight: 0,

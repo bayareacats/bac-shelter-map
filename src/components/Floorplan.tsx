@@ -194,6 +194,7 @@ export function FloorPlan({ cats, rooms, editMode, onRoomUpdate, onRoomCommit }:
 
   return (
     <div
+      className="floorplan-print-frame"
       ref={containerRef}
 
       onMouseDown={handleMouseDown}
@@ -211,7 +212,7 @@ export function FloorPlan({ cats, rooms, editMode, onRoomUpdate, onRoomCommit }:
         position: "relative",
       }}
     >
-      <div style={{ position: "absolute", top: 10, left: 10, zIndex: 10, display: "flex", gap: "0.5rem" }}>
+      <div className="floorplan-controls" style={{ position: "absolute", top: 10, left: 10, zIndex: 10, display: "flex", gap: "0.5rem" }}>
         <Button
           variant="contained"
           size="small"
@@ -263,6 +264,7 @@ export function FloorPlan({ cats, rooms, editMode, onRoomUpdate, onRoomCommit }:
       </div>
 
       <div
+        className="floorplan-world"
         style={{
           width: 1000,
           height: 600,

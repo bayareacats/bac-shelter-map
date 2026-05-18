@@ -17,7 +17,7 @@ export function CatList({ cats, draggable = false, title, droppableId }: Props) 
         disabled: !droppableId,
     });
     return (
-        <section style={{
+        <section className="cat-list-panel" style={{
             display: "flex",
             flexDirection: "column",
             height: "100%",
