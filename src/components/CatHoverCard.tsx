@@ -46,15 +46,14 @@ export function CatHoverCard({ cat, position }: Props) {
         top: top,
         left: left,
         zIndex: 9999,
-        backgroundColor: "rgba(30, 41, 59, 0.95)", // dark slate, high opacity
-        color: "#fff",
+        backgroundColor: "#ffffff",
+        color: "#172033",
         padding: "0.75rem",
         borderRadius: "8px",
-        boxShadow: "0 4px 6px rgba(0,0,0,0.3), 0 10px 15px rgba(0,0,0,0.2)",
+        boxShadow: "0 8px 20px rgba(15, 23, 42, 0.16)",
         pointerEvents: "none", // Don't interfere with mouse events
-        border: "1px solid #475569",
+        border: "1px solid #bfdbfe",
         minWidth: "200px",
-        backdropFilter: "blur(4px)",
         opacity: dimensions ? 1 : 0, // Prevent flash of unpositioned content
         transition: "opacity 0.1s ease-out"
       }}
@@ -68,15 +67,15 @@ export function CatHoverCard({ cat, position }: Props) {
           style={{
             borderRadius: "6px",
             objectFit: "cover",
-            backgroundColor: "#000",
+            backgroundColor: "#f8fafc",
           }}
         />
         <div>
           <h4 style={{ margin: "0 0 0.25rem 0", fontSize: "1rem" }}>{cat.name}</h4>
-          <div style={{ fontSize: "0.8rem", color: "#cbd5e1", lineHeight: "1.4" }}>
+          <div style={{ fontSize: "0.8rem", color: "#334155", lineHeight: "1.4" }}>
             {cat.sex && <div>{cat.sex}</div>}
             {cat.color && <div>{cat.color} {cat.pattern}</div>}
-            <div style={{ marginTop: "0.25rem", fontSize: "0.75rem", color: "#94a3b8" }}>
+            <div style={{ marginTop: "0.25rem", fontSize: "0.75rem", color: "#64748b" }}>
               Intake: {intakeDateStr}
             </div>
           </div>

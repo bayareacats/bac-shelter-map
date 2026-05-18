@@ -333,7 +333,9 @@ function App() {
           gap: "1rem",
           padding: "1rem",
           boxSizing: "border-box",
-          overflow: "hidden"
+          overflow: "hidden",
+          background: "#ffffff",
+          color: "#172033"
         }}
       >
         {/* 🐈 In-Shelter (Draggable) */}
@@ -374,14 +376,19 @@ function App() {
                   sx={{
                     minWidth: 58,
                     height: 26,
-                    color: "#e2e8f0",
-                    borderColor: "#64748b",
+                    color: "#1d4ed8",
+                    borderColor: "#93c5fd",
+                    backgroundColor: "#ffffff",
                     textTransform: "none",
                     fontSize: 12,
                     lineHeight: 1,
                     "&:hover": {
-                      borderColor: "#94a3b8",
-                      backgroundColor: "rgba(148, 163, 184, 0.12)",
+                      borderColor: "#2563eb",
+                      backgroundColor: "#eff6ff",
+                    },
+                    "&.Mui-disabled": {
+                      color: "#94a3b8",
+                      borderColor: "#cbd5e1",
                     },
                   }}
                 >
@@ -396,7 +403,7 @@ function App() {
             style={{
               flex: 1,
               minHeight: 0,
-              borderRadius: 8,
+              borderRadius: 16,
               padding: "0.5rem",
               overflow: "hidden", // Ensure container strictly clips content and respects flex size
               position: "relative",

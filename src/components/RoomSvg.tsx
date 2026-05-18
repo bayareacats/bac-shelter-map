@@ -147,7 +147,7 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
     gridAutoRows: "40px",
     alignItems: "start",
     borderRadius: 3,
-    background: isOver ? "rgba(99, 102, 241, 0.28)" : "transparent",
+    background: isOver ? "rgba(37, 99, 235, 0.12)" : "transparent",
     transition: "background-color 0.12s ease",
   });
 
@@ -159,15 +159,15 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
       <rect
         width={room.width}
         height={room.height}
-        rx={2}
-        ry={2}
+        rx={8}
+        ry={8}
         fill={
           isWholeOver || isLeftOver || isRightOver
-            ? "rgba(79, 70, 229, 0.4)" // Indigo 600, 40%
-            : "#334155" // Slate 700
+            ? "#eff6ff"
+            : "#ffffff"
         }
-        stroke="#64748b" // Slate 500
-        strokeWidth={1}
+        stroke="#94a3b8"
+        strokeWidth={1.25}
         cursor={editMode ? "move" : "default"}
         onMouseDown={onMouseDownMove}
       />
@@ -179,7 +179,7 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
           y1={0}
           x2={room.width / 2}
           y2={room.height}
-          stroke="#94a3b8"
+          stroke="#2563eb"
           strokeDasharray="2 2"
           strokeWidth={0.5}
           pointerEvents="none"
@@ -191,7 +191,7 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
         x={8}
         y={14}
         fontSize={9}
-        fill="#e2e8f0" // Slate 200
+        fill="#172033"
         pointerEvents="none"
         fontFamily="monospace"
         fontWeight="bold"
@@ -261,12 +261,12 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
               padding: 0,
               borderRadius: "4px",
               border: room.divided
-                ? "1px solid rgba(147, 197, 253, 0.55)"
-                : "1px solid rgba(148, 163, 184, 0.25)",
+                ? "1px solid #60a5fa"
+                : "1px solid #cbd5e1",
               background: room.divided
-                ? "rgba(37, 99, 235, 0.78)"
-                : "rgba(71, 85, 105, 0.58)",
-              color: room.divided ? "#fff" : "rgba(226, 232, 240, 0.72)",
+                ? "#dbeafe"
+                : "#f8fafc",
+              color: room.divided ? "#1d4ed8" : "#475569",
               fontSize: "8px",
               fontWeight: 700,
               fontFamily: "inherit",

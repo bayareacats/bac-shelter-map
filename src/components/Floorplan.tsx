@@ -201,10 +201,11 @@ export function FloorPlan({ cats, rooms, editMode, onRoomUpdate, onRoomCommit }:
       style={{
         width: "100%",
         height: "100%",
-        backgroundColor: "#1e293b",
-        borderRadius: 8,
+        backgroundColor: "#ffffff",
+        border: "1px solid #cbd5e1",
+        borderRadius: 16,
         overflow: "hidden",
-        boxShadow: "inset 0 0 20px rgba(0,0,0,0.5)",
+        boxShadow: "0 2px 10px rgba(15, 23, 42, 0.08)",
         cursor: isDragging ? "grabbing" : "grab",
         touchAction: "none", // Prevent browser scrolling
         position: "relative",
@@ -216,10 +217,11 @@ export function FloorPlan({ cats, rooms, editMode, onRoomUpdate, onRoomCommit }:
           size="small"
           onClick={resetView}
           sx={{
-            backgroundColor: "rgba(33, 33, 33, 0.8)",
-            backdropFilter: "blur(4px)",
-            color: "#fff",
-            "&:hover": { backgroundColor: "rgba(33, 33, 33, 1)" }
+            backgroundColor: "#ffffff",
+            border: "1px solid #bfdbfe",
+            boxShadow: "0 1px 2px rgba(15, 23, 42, 0.08)",
+            color: "#1d4ed8",
+            "&:hover": { backgroundColor: "#eff6ff", boxShadow: "none" }
           }}
         >
           Reset View
@@ -230,10 +232,11 @@ export function FloorPlan({ cats, rooms, editMode, onRoomUpdate, onRoomCommit }:
           onClick={() => handleZoom(1.2)}
           sx={{
             minWidth: "40px",
-            backgroundColor: "rgba(33, 33, 33, 0.8)",
-            backdropFilter: "blur(4px)",
-            color: "#fff",
-            "&:hover": { backgroundColor: "rgba(33, 33, 33, 1)" },
+            backgroundColor: "#ffffff",
+            border: "1px solid #bfdbfe",
+            boxShadow: "0 1px 2px rgba(15, 23, 42, 0.08)",
+            color: "#1d4ed8",
+            "&:hover": { backgroundColor: "#eff6ff", boxShadow: "none" },
             fontSize: "1.6rem",
             padding: "0"
           }}
@@ -246,10 +249,11 @@ export function FloorPlan({ cats, rooms, editMode, onRoomUpdate, onRoomCommit }:
           onClick={() => handleZoom(0.8)}
           sx={{
             minWidth: "40px",
-            backgroundColor: "rgba(33, 33, 33, 0.8)",
-            backdropFilter: "blur(4px)",
-            color: "#fff",
-            "&:hover": { backgroundColor: "rgba(33, 33, 33, 1)" },
+            backgroundColor: "#ffffff",
+            border: "1px solid #bfdbfe",
+            boxShadow: "0 1px 2px rgba(15, 23, 42, 0.08)",
+            color: "#1d4ed8",
+            "&:hover": { backgroundColor: "#eff6ff", boxShadow: "none" },
             fontSize: "1.6rem",
             padding: "0"
           }}
@@ -279,42 +283,7 @@ export function FloorPlan({ cats, rooms, editMode, onRoomUpdate, onRoomCommit }:
             outline: "none",
           }}
         >
-          <defs>
-            <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse">
-              {/* Row 1 */}
-              <circle cx="2" cy="2" r="1" fill="#334155" />
-              <circle cx="22" cy="2" r="1" fill="#334155" />
-              <circle cx="42" cy="2" r="1" fill="#334155" />
-              <circle cx="62" cy="2" r="1" fill="#334155" />
-              <circle cx="82" cy="2" r="1" fill="#334155" />
-              {/* Row 2 */}
-              <circle cx="2" cy="22" r="1" fill="#334155" />
-              <circle cx="22" cy="22" r="1" fill="#334155" />
-              <circle cx="42" cy="22" r="1" fill="#334155" />
-              <circle cx="62" cy="22" r="1" fill="#334155" />
-              <circle cx="82" cy="22" r="1" fill="#334155" />
-              {/* Row 3 */}
-              <circle cx="2" cy="42" r="1" fill="#334155" />
-              <circle cx="22" cy="42" r="1" fill="#334155" />
-              <circle cx="42" cy="42" r="1" fill="#334155" />
-              <circle cx="62" cy="42" r="1" fill="#334155" />
-              <circle cx="82" cy="42" r="1" fill="#334155" />
-              {/* Row 4 */}
-              <circle cx="2" cy="62" r="1" fill="#334155" />
-              <circle cx="22" cy="62" r="1" fill="#334155" />
-              <circle cx="42" cy="62" r="1" fill="#334155" />
-              <circle cx="62" cy="62" r="1" fill="#334155" />
-              <circle cx="82" cy="62" r="1" fill="#334155" />
-              {/* Row 5 */}
-              <circle cx="2" cy="82" r="1" fill="#334155" />
-              <circle cx="22" cy="82" r="1" fill="#334155" />
-              <circle cx="42" cy="82" r="1" fill="#334155" />
-              <circle cx="62" cy="82" r="1" fill="#334155" />
-              <circle cx="82" cy="82" r="1" fill="#334155" />
-            </pattern>
-          </defs>
-
-          <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#grid)" />
+          <rect x="-5000" y="-5000" width="10000" height="10000" fill="#ffffff" />
 
           {rooms.map((room) => (<RoomSvg
             key={room.id}

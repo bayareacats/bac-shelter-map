@@ -67,6 +67,8 @@ export function CatIcon({ cat, assigned = false }: Props) {
                     style={{
                         borderRadius: "50%",
                         objectFit: "cover",
+                        border: "1px solid #cbd5e1",
+                        background: "#ffffff",
                     }}
                 />
 
@@ -81,7 +83,7 @@ export function CatIcon({ cat, assigned = false }: Props) {
                         lineHeight: assigned ? "1.1" : "inherit",
                         fontSize: assigned ? "0.55rem" : "1rem", // Optional: smaller text when assigned
                         maxWidth: assigned ? "100%" : "none",    // Used to be 50px, but parent is now 50px
-                        color: "#FFF"
+                        color: "#172033"
                     }}
                     title={cat.name}
                 >
