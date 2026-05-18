@@ -14,21 +14,36 @@ import {
   getDividerSideAssignments,
   roomNeedsDivider,
 } from "./roomDividerAssignments";
-import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
-import EditIcon from "@mui/icons-material/Edit";
-import CheckIcon from "@mui/icons-material/Check";
 import Tooltip from "@mui/material/Tooltip";
 
 const MINIMUM_AGE_SECONDS = (7 * 7 + 3) * 24 * 60 * 60;
 const EXCLUDED_SHELTERLUV_STATUS = "Unavailable In-Foster (Underage)";
+const ROOM_CAPACITY = 10;
+const KENNEL_SIDE_CAPACITY = 6;
+
+function canRoomHaveDivider(room: Room) {
+  return room.id.startsWith("room-1-k");
+}
+
+function isRoomDivided(room: Room, catsInRoom: Cat[]) {
+  if (!canRoomHaveDivider(room)) return false;
+  return room.dividerOverride ?? (room.divided || roomNeedsDivider(catsInRoom));
+}
+
+function getRenderableRoom(room: Room, catsInRoom: Cat[]) {
+  return {
+    ...room,
+    divided: isRoomDivided(room, catsInRoom),
+    canHaveDivider: canRoomHaveDivider(room),
+  };
+}
 
 function App() {
   const [cats, setCats] = useState<Cat[]>([]);
   const [activeCat, setActiveCat] = useState<Cat | null>(null);
 
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [editMode, setEditMode] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [currentUnixSeconds] = useState(() => Math.floor(Date.now() / 1000));
@@ -225,14 +240,15 @@ function App() {
       newDividerSide = undefined;
     }
 
-    // Check maxCats limit
+    // Check fixed room limits
     if (newRoomId) {
       const targetRoom = rooms.find((r) => r.id === newRoomId);
-      if (targetRoom && targetRoom.maxCats) {
-        if (targetRoom.divided) {
-          // Validation for divided rooms (per-side capacity)
-          const limit = targetRoom.maxCats;
+      if (targetRoom) {
+        const targetRoomCats = displayCats.filter((cat) => cat.roomId === newRoomId);
+        const targetRoomIsDivided = isRoomDivided(targetRoom, targetRoomCats);
 
+        if (targetRoomIsDivided) {
+          // Validation for divided rooms (per-side capacity)
           const currentCatsInSide = cats.filter(
             (c) =>
               c.roomId === newRoomId &&
@@ -240,7 +256,7 @@ function App() {
               c.id !== active.id
           );
 
-          if (currentCatsInSide.length >= limit) {
+          if (currentCatsInSide.length >= KENNEL_SIDE_CAPACITY) {
             setActiveCat(null);
             return; // Cancel drop
           }
@@ -249,7 +265,7 @@ function App() {
           const currentCatsInRoom = cats.filter(
             (c) => c.roomId === newRoomId && c.id !== active.id
           );
-          if (currentCatsInRoom.length >= targetRoom.maxCats) {
+          if (currentCatsInRoom.length >= ROOM_CAPACITY) {
             setActiveCat(null);
             return; // Cancel drop
           }
@@ -304,8 +320,8 @@ function App() {
   return (
     <DndContext
       sensors={sensors}
-      onDragStart={editMode ? undefined : handleDragStart}
-      onDragEnd={editMode ? undefined : handleDragEnd}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
     >
       <div
         className="main-layout-grid"
@@ -373,24 +389,6 @@ function App() {
                 </Button>
               </span>
             </Tooltip>
-            <Tooltip title={editMode ? "Exit Edit Mode" : "Edit Floorplan"}>
-              <IconButton
-                onClick={() => setEditMode((v) => !v)}
-                sx={{
-                  color: "#FFF",
-                  backgroundColor: editMode ? "#420b0b" : "#0b315c",
-                  "&:hover": {
-                    backgroundColor: editMode ? "#5e1010" : "#10427a",
-                  },
-                  "&:focus": { outline: "none" },
-                  width: 26,
-                  height: 26,
-                }}
-                size="small"
-              >
-                {editMode ? <CheckIcon sx={{ fontSize: 18 }} /> : <EditIcon sx={{ fontSize: 18 }} />}
-              </IconButton>
-            </Tooltip>
           </div>
 
           {/* SVG container */}
@@ -405,12 +403,11 @@ function App() {
             }}
           >
             <FloorPlan
-              rooms={rooms.map((room) => ({
-                ...room,
-                divided: room.divided || roomNeedsDivider(displayCats.filter((cat) => cat.roomId === room.id)),
-              }))}
+              rooms={rooms.map((room) =>
+                getRenderableRoom(room, displayCats.filter((cat) => cat.roomId === room.id))
+              )}
               cats={displayCats}
-              editMode={editMode}
+              editMode={false}
               onRoomUpdate={handleRoomUpdate}
               onRoomCommit={handleRoomCommit}
             />

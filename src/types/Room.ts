@@ -6,5 +6,7 @@ export interface Room {
   width: number;
   height: number;
   divided: boolean;
+  canHaveDivider?: boolean;
+  dividerOverride?: boolean | null;
   maxCats?: number;
 }

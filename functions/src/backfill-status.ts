@@ -3,7 +3,6 @@ import { getFirestore } from "firebase-admin/firestore";
 import axios from "axios";
 import { ShelterluvCat } from "./types/cat-info.js";
 import {
-    getDividerSideAssignments,
     getRoomIdForShelterluvLocation,
     getShelterluvLocationLabel,
 } from "./location-mapping.js";
@@ -63,7 +62,6 @@ async function main() {
     const db = getFirestore();
 
     const animals = await fetchInCustodyAnimals(apiKey);
-    const dividerSideAssignments = getDividerSideAssignments(animals);
     const snapshot = await db.collection("cats").get();
     const existingCatsById = new Map(snapshot.docs.map((doc) => [doc.id, doc.data()]));
 
@@ -84,7 +82,6 @@ async function main() {
 
             if (!animal.InFoster && shelterluvRoomId && existingCat?.manualRoomOverride !== true) {
                 fields.roomId = shelterluvRoomId;
-                fields.dividerSide = dividerSideAssignments.get(id) ?? null;
                 fields.manualRoomOverride = false;
             }
 

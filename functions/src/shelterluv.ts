@@ -6,7 +6,6 @@ import { logger } from "firebase-functions/v2";
 import { ShelterluvCat } from "./types/cat-info.js";
 import axios from "axios";
 import {
-    getDividerSideAssignments,
     getRoomIdForShelterluvLocation,
     getShelterluvLocationLabel,
 } from "./location-mapping.js";
@@ -80,8 +79,6 @@ export const syncShelterluvCats = onSchedule(
                 apiCatIds.add(cat.ID.toString());
             }
 
-            const dividerSideAssignments = getDividerSideAssignments(allCats);
-
             const snapshot = await db
                 .collection("cats")
                 .get();
@@ -129,7 +126,6 @@ export const syncShelterluvCats = onSchedule(
 
                 if (!cat.InFoster && shelterluvRoomId && !manualRoomOverride) {
                     update.roomId = shelterluvRoomId;
-                    update.dividerSide = dividerSideAssignments.get(cat.ID.toString()) ?? null;
                     update.manualRoomOverride = false;
                 }
 

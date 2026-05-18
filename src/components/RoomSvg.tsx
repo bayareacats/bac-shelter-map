@@ -3,8 +3,6 @@ import type { Cat } from "../types/Cat";
 import type { Room } from "../types/Room";
 import { CatIcon } from "./CatIcon";
 import { useEffect, useRef } from "react";
-import Button from "@mui/material/Button";
-import Tooltip from "@mui/material/Tooltip";
 
 interface RoomProps {
   room: Room;
@@ -107,18 +105,9 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
 
   /* ---------------- CAT GROUPING ---------------- */
 
-  const leftCats = cats.filter(
-    (c) => !room.divided || c.dividerSide !== "right"
-  );
+  const leftCats = cats.filter((c) => !room.divided || c.dividerSide !== "right");
 
-  const rightCats = cats.filter(
-    (c) => room.divided && c.dividerSide === "right"
-  );
-
-  /* ---------------- CAPACITY LOGIC ---------------- */
-  const totalCap = room.maxCats ?? 0;
-  const leftMax = totalCap;
-  const rightMax = room.divided ? totalCap : 0;
+  const rightCats = cats.filter((c) => room.divided && c.dividerSide === "right");
 
   /* ---------------- RENDER ---------------- */
 
@@ -142,10 +131,10 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
     gridTemplateRows: "1fr",
     padding: `${PADDING}px`,
     boxSizing: "border-box",
-    alignItems: "start",
+    alignItems: "stretch",
   };
 
-  const sideStyle: React.CSSProperties = {
+  const getSideStyle = (isOver: boolean): React.CSSProperties => ({
     display: "grid",
     gridTemplateColumns: `repeat(${cols}, 1fr)`,
     columnGap: `${ITEM_GAP}px`,
@@ -153,9 +142,14 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
     justifyItems: "center",
     alignContent: "start",
     width: "100%",
+    height: "100%",
+    minHeight: "100%",
     gridAutoRows: "40px",
     alignItems: "start",
-  };
+    borderRadius: 3,
+    background: isOver ? "rgba(99, 102, 241, 0.28)" : "transparent",
+    transition: "background-color 0.12s ease",
+  });
 
   return (
     <g transform={`translate(${room.x}, ${room.y})`}
@@ -203,11 +197,6 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
         fontWeight="bold"
       >
         {room.label}
-        {room.maxCats
-          ? room.divided
-            ? ` (L:${leftCats.length}/${leftMax} R:${rightCats.length}/${rightMax})`
-            : ` (${leftCats.length}/${room.maxCats})`
-          : ""}
       </text>
 
       {/* Cat Droppable Area */}
@@ -228,44 +217,18 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
         >
           {/* LEFT */}
           <div ref={room.divided ? setLeftRef : undefined}
-            style={sideStyle}>
+            style={getSideStyle(isLeftOver)}>
             {leftCats.map((cat) => (
               <CatIcon key={cat.id} cat={cat} assigned={true} />
-            ))}
-            {/* Empty Slots (Left Side) */}
-            {room.maxCats && Array.from({ length: Math.max(0, leftMax - leftCats.length) }).map((_, i) => (
-              <div
-                key={`empty-left-${i}`}
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: "50%",
-                  border: "2px dashed rgba(255, 255, 255, 0.2)",
-                  boxSizing: "border-box",
-                }}
-              />
             ))}
           </div>
 
           {/* RIGHT */}
           {room.divided && (
             <div ref={setRightRef}
-              style={sideStyle}>
+              style={getSideStyle(isRightOver)}>
               {rightCats.map((cat) => (
                 <CatIcon key={cat.id} cat={cat} assigned={true} />
-              ))}
-              {/* Empty Slots (Right Side) */}
-              {room.maxCats && Array.from({ length: Math.max(0, rightMax - rightCats.length) }).map((_, i) => (
-                <div
-                  key={`empty-right-${i}`}
-                  style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: "50%",
-                    border: "2px dashed rgba(255, 255, 255, 0.2)",
-                    boxSizing: "border-box",
-                  }}
-                />
               ))}
             </div>
           )}
@@ -274,110 +237,49 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
 
 
 
-      {/* Edit Controls (Divider Button) - Rendered inside SVG to respect z-index */}
-      {editMode && (
+      {room.canHaveDivider && (
         <foreignObject
-          x={0}
-          y={0}
-          width={room.width}
-          height={room.height}
-          style={{ pointerEvents: "none" }} // Let clicks pass through to room drag/resize
+          x={Math.max(0, room.width - 64)}
+          y={4}
+          width={60}
+          height={22}
+          style={{ pointerEvents: "auto" }}
         >
-          <div
+          <button
+            type="button"
+            title={room.divided ? "Remove Divider" : "Add Divider"}
+            onClick={(e) => {
+              e.stopPropagation();
+              propsRef.current.onCommit({
+                ...room,
+                dividerOverride: !room.divided,
+              });
+            }}
             style={{
-              position: "absolute",
-              top: 4,
-              right: 4,
-              pointerEvents: "auto", // Re-enable clicks for the button
+              width: "58px",
+              height: "20px",
+              padding: 0,
+              borderRadius: "4px",
+              border: room.divided
+                ? "1px solid rgba(147, 197, 253, 0.55)"
+                : "1px solid rgba(148, 163, 184, 0.25)",
+              background: room.divided
+                ? "rgba(37, 99, 235, 0.78)"
+                : "rgba(71, 85, 105, 0.58)",
+              color: room.divided ? "#fff" : "rgba(226, 232, 240, 0.72)",
+              fontSize: "8px",
+              fontWeight: 700,
+              fontFamily: "inherit",
+              lineHeight: "18px",
+              cursor: "pointer",
+              letterSpacing: 0,
+              textTransform: "none",
             }}
           >
-            <Tooltip title={room.divided ? "Remove Divider" : "Add Divider"}>
-              <Button
-                size="small"
-                variant="contained"
-                onClick={(e) => {
-                  e.stopPropagation(); // Prevent drag start
-                  propsRef.current.onCommit({
-                    ...room,
-                    divided: !room.divided,
-                  });
-                }}
-                sx={{
-                  fontSize: "0.6em",
-                  padding: "3px 8px",
-                  minWidth: "auto",
-                  lineHeight: 1.1,
-                  backgroundColor: room.divided ? "rgba(34, 197, 94, 0.9)" : "rgba(71, 85, 105, 0.6)",
-                  backdropFilter: "blur(4px)",
-                  color: room.divided ? "#fff" : "rgba(255, 255, 255, 0.5)",
-                  border: "1px solid",
-                  borderColor: room.divided ? "rgba(255, 255, 255, 0.4)" : "rgba(255, 255, 255, 0.1)",
-                  borderRadius: "6px",
-                  boxShadow: room.divided
-                    ? "0 0 12px rgba(34, 197, 94, 0.4)"
-                    : "none",
-                  "&:hover": {
-                    backgroundColor: room.divided ? "rgba(34, 197, 94, 1)" : "rgba(71, 85, 105, 0.9)",
-                    color: "#fff",
-                    boxShadow: room.divided
-                      ? "0 0 16px rgba(34, 197, 94, 0.6)"
-                      : "0 4px 12px rgba(0, 0, 0, 0.3)",
-                    borderColor: "rgba(255, 255, 255, 0.5)",
-                  },
-                  "&:focus": { outline: "none" },
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  fontWeight: 800,
-                  fontFamily: "inherit",
-                  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                }}
-              >
-                DIVIDER
-              </Button>
-            </Tooltip>
-          </div>
-          <div
-            style={{
-              position: "absolute",
-              bottom: 4,
-              left: 4,
-              pointerEvents: "auto",
-            }}
-          >
-            <input
-              type="number"
-              placeholder="Max"
-              defaultValue={room.maxCats}
-              onBlur={(e) => {
-                const val = parseInt(e.target.value);
-                propsRef.current.onCommit({
-                  ...room,
-                  maxCats: isNaN(val) ? undefined : val,
-                });
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.currentTarget.blur();
-                }
-              }}
-              style={{
-                width: "50px",
-                fontSize: "10px",
-                padding: "2px",
-                borderRadius: "4px",
-                border: "1px solid rgba(255,255,255,0.3)",
-                background: "rgba(0,0,0,0.5)",
-                color: "white",
-              }}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
+            Divider
+          </button>
         </foreignObject>
-      )
-      }
+      )}
     </g >
   );
 }
-
-
-
