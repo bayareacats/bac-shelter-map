@@ -7,9 +7,23 @@ export function getLitterGroupKey(cat: Pick<Cat, "id" | "litterGroupId">): strin
 }
 
 export function roomNeedsDivider(cats: Cat[]): boolean {
-  const litterCount = new Set(cats.map(getLitterGroupKey)).size;
-  if (litterCount > 1) return true;
+  const dividerEligibleGroups = getDividerEligibleLitterGroups(cats);
+  if (dividerEligibleGroups.length > 1) return true;
   return cats.length === 2 && cats.some((cat) => cat.Status === BEHAVIOR_STATUS);
+}
+
+function getDividerEligibleLitterGroups(cats: Cat[]) {
+  const catsByLitterGroup = new Map<string, Cat[]>();
+  for (const cat of cats) {
+    const key = getLitterGroupKey(cat);
+    catsByLitterGroup.set(key, [...(catsByLitterGroup.get(key) ?? []), cat]);
+  }
+
+  return Array.from(catsByLitterGroup.entries()).filter(
+    ([, litterCats]) =>
+      litterCats.length > 1 ||
+      litterCats.some((cat) => cat.Status === BEHAVIOR_STATUS)
+  );
 }
 
 export function getDividerSideAssignments(
@@ -28,13 +42,7 @@ export function getDividerSideAssignments(
   const assignments = new Map<string, "left" | "right" | null>();
 
   for (const roomCats of catsByRoomId.values()) {
-    const catsByLitterGroup = new Map<string, Cat[]>();
-    for (const cat of roomCats) {
-      const key = getLitterGroupKey(cat);
-      catsByLitterGroup.set(key, [...(catsByLitterGroup.get(key) ?? []), cat]);
-    }
-
-    const litterGroups = Array.from(catsByLitterGroup.entries()).sort(
+    const litterGroups = getDividerEligibleLitterGroups(roomCats).sort(
       ([aKey, aCats], [bKey, bCats]) => bCats.length - aCats.length || aKey.localeCompare(bKey)
     );
 
@@ -52,11 +60,13 @@ export function getDividerSideAssignments(
 
     let leftCount = 0;
     let rightCount = 0;
+    const assignedCatIds = new Set<string>();
 
     for (const [, litterCats] of litterGroups) {
       const side = leftCount <= rightCount ? "left" : "right";
       for (const cat of litterCats) {
         assignments.set(cat.id, side);
+        assignedCatIds.add(cat.id);
       }
 
       if (side === "left") {
@@ -64,6 +74,10 @@ export function getDividerSideAssignments(
       } else {
         rightCount += litterCats.length;
       }
+    }
+
+    for (const cat of roomCats) {
+      if (!assignedCatIds.has(cat.id)) assignments.set(cat.id, null);
     }
   }
 

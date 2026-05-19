@@ -60,13 +60,7 @@ function getDividerSideAssignments(
     const assignments = new Map<string, "left" | "right" | null>();
 
     for (const roomAnimals of animalsByRoomId.values()) {
-        const animalsByLitterGroup = new Map<string, ShelterluvRoomAssignmentAnimal[]>();
-        for (const animal of roomAnimals) {
-            const key = getLitterGroupKey(animal);
-            animalsByLitterGroup.set(key, [...(animalsByLitterGroup.get(key) ?? []), animal]);
-        }
-
-        const litterGroups = Array.from(animalsByLitterGroup.entries()).sort(
+        const litterGroups = getDividerEligibleLitterGroups(roomAnimals).sort(
             ([aKey, aAnimals], [bKey, bAnimals]) => bAnimals.length - aAnimals.length || aKey.localeCompare(bKey)
         );
 
@@ -89,11 +83,13 @@ function getDividerSideAssignments(
 
         let leftCount = 0;
         let rightCount = 0;
+        const assignedAnimalIds = new Set<string>();
 
         for (const [, litterAnimals] of litterGroups) {
             const side = leftCount <= rightCount ? "left" : "right";
             for (const animal of litterAnimals) {
                 assignments.set(animal.ID.toString(), side);
+                assignedAnimalIds.add(animal.ID.toString());
             }
 
             if (side === "left") {
@@ -102,9 +98,28 @@ function getDividerSideAssignments(
                 rightCount += litterAnimals.length;
             }
         }
+
+        for (const animal of roomAnimals) {
+            const id = animal.ID.toString();
+            if (!assignedAnimalIds.has(id)) assignments.set(id, null);
+        }
     }
 
     return assignments;
+}
+
+function getDividerEligibleLitterGroups(animals: ShelterluvRoomAssignmentAnimal[]) {
+    const animalsByLitterGroup = new Map<string, ShelterluvRoomAssignmentAnimal[]>();
+    for (const animal of animals) {
+        const key = getLitterGroupKey(animal);
+        animalsByLitterGroup.set(key, [...(animalsByLitterGroup.get(key) ?? []), animal]);
+    }
+
+    return Array.from(animalsByLitterGroup.entries()).filter(
+        ([, litterAnimals]) =>
+            litterAnimals.length > 1 ||
+            litterAnimals.some((animal) => animal.Status === BEHAVIOR_STATUS)
+    );
 }
 
 export {

@@ -29,7 +29,7 @@ function canRoomHaveDivider(room: Room) {
 
 function isRoomDivided(room: Room, catsInRoom: Cat[]) {
   if (!canRoomHaveDivider(room)) return false;
-  return room.dividerOverride ?? (room.divided || roomNeedsDivider(catsInRoom));
+  return room.dividerOverride ?? roomNeedsDivider(catsInRoom);
 }
 
 function getRenderableRoom(room: Room, catsInRoom: Cat[]) {

@@ -275,10 +275,10 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
 
       {room.canHaveDivider && (
         <foreignObject
-          x={Math.max(0, room.width - 64)}
-          y={4}
-          width={60}
-          height={22}
+          x={Math.max(0, room.width - 62)}
+          y={5}
+          width={58}
+          height={20}
           style={{ pointerEvents: "auto" }}
         >
           <button
@@ -294,8 +294,8 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
               });
             }}
             style={{
-              width: "58px",
-              height: "20px",
+              width: "56px",
+              height: "18px",
               padding: 0,
               borderRadius: "4px",
               border: room.divided
@@ -308,10 +308,15 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
               fontSize: "8px",
               fontWeight: 700,
               fontFamily: "inherit",
-              lineHeight: "18px",
+              lineHeight: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               cursor: "pointer",
               letterSpacing: 0,
               textTransform: "none",
+              outline: "none",
+              boxShadow: "none",
             }}
           >
             Divider

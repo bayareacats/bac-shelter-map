@@ -58,6 +58,12 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+.divider-toggle:focus,
+.divider-toggle:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .main-layout-grid {
   transition: grid-template-columns 0.3s ease;
 }
