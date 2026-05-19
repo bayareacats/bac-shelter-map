@@ -282,6 +282,8 @@ export function RoomSvg({ room, editMode, cats, onUpdate, onCommit }: RoomProps)
           style={{ pointerEvents: "auto" }}
         >
           <button
+            className="divider-toggle"
+            data-divider-active={room.divided ? "true" : "false"}
             type="button"
             title={room.divided ? "Remove Divider" : "Add Divider"}
             onClick={(e) => {

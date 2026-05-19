@@ -1,8 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Room } from "../types/Room";
 import type { Cat } from "../types/Cat";
 import { RoomSvg } from "./RoomSvg";
-import Button from "@mui/material/Button";
 
 interface Props {
   rooms: Room[];
@@ -17,254 +16,126 @@ export function FloorPlan({ cats, rooms, editMode, onRoomUpdate, onRoomCommit }:
 
   // Transform state: translate x, y and uniform scale
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStart = useRef({ x: 0, y: 0, startTransformX: 0, startTransformY: 0 });
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [usePrintLayout, setUsePrintLayout] = useState(false);
+  const [isCompact, setIsCompact] = useState(() => window.matchMedia("(max-width: 1050px)").matches);
+  const useVerticalLayout = !usePrintLayout && isCompact;
+  const laidOutRooms = useMemo(() => getFlexLayoutRooms(rooms, useVerticalLayout), [rooms, useVerticalLayout]);
+  const layoutBounds = useMemo(() => getLayoutBounds(laidOutRooms), [laidOutRooms]);
+  const canvasWidth = Math.max(1000, Math.ceil((layoutBounds?.maxX ?? 1000) + 20));
+  const canvasHeight = Math.max(600, Math.ceil((layoutBounds?.maxY ?? 600) + 20));
+  const compactFrameHeight = useMemo(() => {
+    if (!useVerticalLayout || containerSize.width <= 0 || !layoutBounds) return undefined;
+    const padding = 20;
+    const contentW = layoutBounds.maxX - layoutBounds.minX + padding * 2;
+    const contentH = layoutBounds.maxY - layoutBounds.minY + padding * 2;
+    return Math.ceil(contentH * ((containerSize.width / contentW) * 0.98));
+  }, [containerSize.width, layoutBounds, useVerticalLayout]);
+  const roomBoundsKey = useMemo(
+    () => laidOutRooms.map((r) => `${r.id}:${r.x},${r.y},${r.width},${r.height}`).join("|"),
+    [laidOutRooms]
+  );
 
-  function resetView() {
+  const fitToAvailableSpace = useCallback(() => {
     if (!containerRef.current) return;
     const { width: containerW, height: containerH } = containerRef.current.getBoundingClientRect();
     if (containerW === 0 || containerH === 0) return;
 
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const { minX, minY, maxX, maxY } = layoutBounds ?? {
+      minX: 0,
+      minY: 0,
+      maxX: 1000,
+      maxY: 600,
+    };
 
-    if (rooms.length > 0) {
-      rooms.forEach((r) => {
-        minX = Math.min(minX, r.x);
-        minY = Math.min(minY, r.y);
-        maxX = Math.max(maxX, r.x + r.width);
-        maxY = Math.max(maxY, r.y + r.height);
-      });
-    } else {
-      // Default to 0,0,1000,600 if no rooms
-      minX = 0; minY = 0; maxX = 1000; maxY = 600;
-    }
+    const padding = 20;
+    const paddedMinX = minX - padding;
+    const paddedMinY = minY - padding;
+    const paddedMaxX = maxX + padding;
+    const paddedMaxY = maxY + padding;
 
-    const padding = 50;
-    minX -= padding;
-    minY -= padding;
-    maxX += padding;
-    maxY += padding;
-
-    const contentW = maxX - minX;
-    const contentH = maxY - minY;
+    const contentW = paddedMaxX - paddedMinX;
+    const contentH = paddedMaxY - paddedMinY;
 
     if (contentW <= 0 || contentH <= 0) return;
 
-    const scale = Math.min(containerW / contentW, containerH / contentH) * 0.95;
+    const scale = useVerticalLayout
+      ? (containerW / contentW) * 0.98
+      : Math.min(containerW / contentW, containerH / contentH) * 0.98;
 
     // Center logic
-    const contentCenterX = minX + contentW / 2;
-    const contentCenterY = minY + contentH / 2;
+    const contentCenterX = paddedMinX + contentW / 2;
+    const contentCenterY = paddedMinY + contentH / 2;
 
     const newX = (containerW / 2) - (contentCenterX * scale);
-    const newY = (containerH / 2) - (contentCenterY * scale);
+    const newY = useVerticalLayout
+      ? padding - (paddedMinY * scale)
+      : (containerH / 2) - (contentCenterY * scale);
 
     setTransform({ x: newX, y: newY, scale });
-  }
+  }, [laidOutRooms, layoutBounds, roomBoundsKey, useVerticalLayout]);
 
-  // 1. Initial fit logic (similar to "meet")
   useLayoutEffect(() => {
-    // We can just call resetView on mount if we want to auto-fit rooms
-    // But the original code fit 1000x600. Let's keep original behavior on mount 
-    // or arguably resetView is better if rooms are loaded.
-    // However, rooms might be empty on first render if loaded async?
-    // The parent passes `rooms`.
-    if (rooms.length > 0) {
-      resetView();
-    } else {
-      if (!containerRef.current) return;
-      const { width, height } = containerRef.current.getBoundingClientRect();
-      if (width === 0 || height === 0) return;
-      const contentW = 1000;
-      const contentH = 600;
-      const scale = Math.min(width / contentW, height / contentH) * 0.95;
-      const x = (width - contentW * scale) / 2;
-      const y = (height - contentH * scale) / 2;
-      setTransform({ x, y, scale });
-    }
-    // We only run this on mount. If rooms load later, we might want to auto-fit?
-    // User asked for a button. Let's stick to the button being the primary way to re-fit.
-    // But updating the initial effect to be smart is good.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const element = containerRef.current;
+    if (!element) return;
 
+    let animationFrame = requestAnimationFrame(fitToAvailableSpace);
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(() => {
+        const { width, height } = element.getBoundingClientRect();
+        setContainerSize({ width, height });
+        fitToAvailableSpace();
+      });
+    });
 
+    const onBeforePrint = () => setUsePrintLayout(true);
+    const onAfterPrint = () => setUsePrintLayout(false);
 
-  // 2. Button Zoom logic
-  function handleZoom(factor: number) {
-    if (!containerRef.current) return;
-    const { width, height } = containerRef.current.getBoundingClientRect();
-
-    // Center of container
-    const centerX = width / 2;
-    const centerY = height / 2;
-
-    const newScale = Math.min(Math.max(0.1, transform.scale * factor), 10);
-
-    // Calculate cursor position in "world" coordinates before zoom
-    const worldX = (centerX - transform.x) / transform.scale;
-    const worldY = (centerY - transform.y) / transform.scale;
-
-    // Calculate new translate to keep world point under cursor
-    const newX = centerX - worldX * newScale;
-    const newY = centerY - worldY * newScale;
-
-    setTransform({ x: newX, y: newY, scale: newScale });
-  }
-
-  // 3. Pan Logic (Mouse/Touch)
-  function handleMouseDown(e: React.MouseEvent | React.TouchEvent) {
-    // Priority check:
-    // 1. If default prevented (handled by child), ignore.
-    // 2. If clicking a button, ignore.
-    // 3. If clicking a cat (draggable), ignore.
-    if (e.defaultPrevented) return;
-
-    const target = e.target as HTMLElement;
-    if (target.closest("button") || target.closest("[data-cat-id]")) {
-      return;
-    }
-
-    // Only drag if clicking background (not buttons/rooms)
-    // Actually, dragging rooms is handled by RoomSvg, but panning should happen on background.
-    // We let events bubble?
-    // If e.target is the SVG background (or rect), we pan.
-    // If e.target is a room, RoomSvg handles it and calls stopPropagation?
-    // RoomSvg `onMouseDownMove` does call stopPropagation.
-
-    // We'll treat this as "start pan"
-    setIsDragging(true);
-
-    let clientX, clientY;
-    if ("touches" in e) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = (e as React.MouseEvent).clientX;
-      clientY = (e as React.MouseEvent).clientY;
-    }
-
-    dragStart.current = {
-      x: clientX,
-      y: clientY,
-      startTransformX: transform.x,
-      startTransformY: transform.y,
-    };
-  }
-
-  useEffect(() => {
-    if (!isDragging) return;
-
-    function onMove(e: MouseEvent | TouchEvent) {
-      let clientX, clientY;
-      if ("touches" in e) {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-      } else {
-        clientX = (e as MouseEvent).clientX;
-        clientY = (e as MouseEvent).clientY;
-      }
-
-      const dx = clientX - dragStart.current.x;
-      const dy = clientY - dragStart.current.y;
-
-      setTransform((prev) => ({
-        ...prev,
-        x: dragStart.current.startTransformX + dx,
-        y: dragStart.current.startTransformY + dy,
-      }));
-    }
-
-    function onUp() {
-      setIsDragging(false);
-    }
-
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("touchmove", onMove);
-    window.addEventListener("mouseup", onUp);
-    window.addEventListener("touchend", onUp);
+    const { width, height } = element.getBoundingClientRect();
+    setContainerSize({ width, height });
+    observer.observe(element);
+    window.addEventListener("beforeprint", onBeforePrint);
+    window.addEventListener("afterprint", onAfterPrint);
 
     return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("touchmove", onMove);
-      window.removeEventListener("mouseup", onUp);
-      window.removeEventListener("touchend", onUp);
+      cancelAnimationFrame(animationFrame);
+      observer.disconnect();
+      window.removeEventListener("beforeprint", onBeforePrint);
+      window.removeEventListener("afterprint", onAfterPrint);
     };
-  }, [isDragging]);
+  }, [fitToAvailableSpace]);
+
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 1050px)");
+    const onChange = (e: MediaQueryListEvent) => setIsCompact(e.matches);
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
 
   return (
     <div
       className="floorplan-print-frame"
       ref={containerRef}
-
-      onMouseDown={handleMouseDown}
-      onTouchStart={handleMouseDown}
       style={{
         width: "100%",
-        height: "100%",
+        height: compactFrameHeight ? `${compactFrameHeight}px` : "100%",
+        minHeight: compactFrameHeight ? `${compactFrameHeight}px` : undefined,
         backgroundColor: "#1e293b",
         border: "1px solid #334155",
         borderRadius: 16,
-        overflow: "hidden",
+        overflowX: "hidden",
+        overflowY: useVerticalLayout ? "auto" : "hidden",
         boxShadow: "inset 0 0 20px rgba(0,0,0,0.5)",
-        cursor: isDragging ? "grabbing" : "grab",
         touchAction: "none", // Prevent browser scrolling
         position: "relative",
       }}
     >
-      <div className="floorplan-controls" style={{ position: "absolute", top: 10, left: 10, zIndex: 10, display: "flex", gap: "0.5rem" }}>
-        <Button
-          variant="contained"
-          size="small"
-          onClick={resetView}
-          sx={{
-            backgroundColor: "rgba(33, 33, 33, 0.8)",
-            backdropFilter: "blur(4px)",
-            color: "#fff",
-            "&:hover": { backgroundColor: "rgba(33, 33, 33, 1)" }
-          }}
-        >
-          Reset View
-        </Button>
-        <Button
-          variant="contained"
-          size="small"
-          onClick={() => handleZoom(1.2)}
-          sx={{
-            minWidth: "40px",
-            backgroundColor: "rgba(33, 33, 33, 0.8)",
-            backdropFilter: "blur(4px)",
-            color: "#fff",
-            "&:hover": { backgroundColor: "rgba(33, 33, 33, 1)" },
-            fontSize: "1.6rem",
-            padding: "0"
-          }}
-        >
-          +
-        </Button>
-        <Button
-          variant="contained"
-          size="small"
-          onClick={() => handleZoom(0.8)}
-          sx={{
-            minWidth: "40px",
-            backgroundColor: "rgba(33, 33, 33, 0.8)",
-            backdropFilter: "blur(4px)",
-            color: "#fff",
-            "&:hover": { backgroundColor: "rgba(33, 33, 33, 1)" },
-            fontSize: "1.6rem",
-            padding: "0"
-          }}
-        >
-          -
-        </Button>
-      </div>
-
       <div
         className="floorplan-world"
         style={{
-          width: 1000,
-          height: 600,
+          width: canvasWidth,
+          height: canvasHeight,
           transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
           transformOrigin: "0 0",
           position: "absolute",
@@ -273,9 +144,9 @@ export function FloorPlan({ cats, rooms, editMode, onRoomUpdate, onRoomCommit }:
       >
         <svg
           className="floorplan-svg"
-          viewBox="0 0 1000 600"
-          width="1000"
-          height="600"
+          viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}
+          width={canvasWidth}
+          height={canvasHeight}
           style={{
             display: "block",
             overflow: "visible",
@@ -284,7 +155,7 @@ export function FloorPlan({ cats, rooms, editMode, onRoomUpdate, onRoomCommit }:
         >
           <rect x="-5000" y="-5000" width="10000" height="10000" fill="#1e293b" />
 
-          {rooms.map((room) => (<RoomSvg
+          {laidOutRooms.map((room) => (<RoomSvg
             key={room.id}
             room={room}
             cats={cats.filter((c) => c.roomId === room.id)}
@@ -298,5 +169,95 @@ export function FloorPlan({ cats, rooms, editMode, onRoomUpdate, onRoomCommit }:
         {/* HTML Overlay matches SVG coordinate system directly (0-1000, 0-600) */}
       </div>
     </div>
+  );
+}
+
+function getFlexLayoutRooms(rooms: Room[], vertical: boolean) {
+  const byId = new Map(rooms.map((room) => [room.id, room]));
+  const layout: Room[] = [];
+
+  const margin = 20;
+  const gap = 20;
+  const kennelWidth = 260;
+  const kennelHeight = 180;
+  const compactWidth = 360;
+  const roomWidth = vertical ? compactWidth : 260;
+  const roomHeight = vertical ? 260 : 260;
+  const roomBlockX = margin + kennelWidth * 2 + gap;
+  const roomBlockY = margin;
+
+  const pushRoom = (id: string, x: number, y: number, width: number, height: number) => {
+    const room = byId.get(id);
+    if (!room) return;
+    layout.push({ ...room, x, y, width, height });
+  };
+
+  if (vertical) {
+    let y = margin;
+    ["room-1-k1", "room-1-k2", "room-1-k3", "room-1-k4", "room-1-k5", "room-1-k6"].forEach((id) => {
+      pushRoom(id, margin, y, compactWidth, kennelHeight);
+      y += kennelHeight;
+    });
+
+    y += gap;
+    pushRoom("room-2", margin, y, roomWidth, roomHeight);
+    y += roomHeight + gap;
+    pushRoom("room-3", margin, y, roomWidth, roomHeight);
+    y += roomHeight + gap;
+    pushRoom("room-4", margin, y, roomWidth, roomHeight);
+  } else {
+    for (let index = 0; index < 6; index += 1) {
+      const id = `room-1-k${index + 1}`;
+      const col = index < 3 ? 0 : 1;
+      const row = index % 3;
+      pushRoom(
+        id,
+        margin + col * kennelWidth,
+        margin + row * kennelHeight,
+        kennelWidth,
+        kennelHeight
+      );
+    }
+
+    pushRoom("room-4", roomBlockX, roomBlockY, roomWidth * 2 + gap, roomHeight);
+    pushRoom("room-2", roomBlockX, roomBlockY + roomHeight + gap, roomWidth, roomHeight);
+    pushRoom("room-3", roomBlockX + roomWidth + gap, roomBlockY + roomHeight + gap, roomWidth, roomHeight);
+  }
+
+  const knownRoomIds = new Set(layout.map((room) => room.id));
+  const otherRooms = rooms.filter((room) => !knownRoomIds.has(room.id));
+  otherRooms.forEach((room, index) => {
+    const col = index % 2;
+    const row = Math.floor(index / 2);
+    layout.push({
+      ...room,
+      x: vertical ? margin : roomBlockX + col * (roomWidth + gap),
+      y: vertical
+        ? margin + (kennelHeight * 6) + gap + (roomHeight + gap) * 3 + row * (roomHeight + gap)
+        : roomBlockY + (roomHeight + gap) * 2 + row * (roomHeight + gap),
+      width: roomWidth,
+      height: roomHeight,
+    });
+  });
+
+  return layout;
+}
+
+function getLayoutBounds(rooms: Room[]) {
+  if (!rooms.length) return null;
+
+  return rooms.reduce(
+    (bounds, room) => ({
+      minX: Math.min(bounds.minX, room.x),
+      minY: Math.min(bounds.minY, room.y),
+      maxX: Math.max(bounds.maxX, room.x + room.width),
+      maxY: Math.max(bounds.maxY, room.y + room.height),
+    }),
+    {
+      minX: Infinity,
+      minY: Infinity,
+      maxX: -Infinity,
+      maxY: -Infinity,
+    }
   );
 }

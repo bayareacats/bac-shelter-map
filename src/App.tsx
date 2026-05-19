@@ -19,8 +19,9 @@ import Tooltip from "@mui/material/Tooltip";
 
 const MINIMUM_AGE_SECONDS = (7 * 7 + 3) * 24 * 60 * 60;
 const EXCLUDED_SHELTERLUV_STATUS = "Unavailable In-Foster (Underage)";
-const ROOM_CAPACITY = 10;
+const ROOM_CAPACITY = 16;
 const KENNEL_SIDE_CAPACITY = 6;
+const KENNEL_CAPACITY = KENNEL_SIDE_CAPACITY * 2;
 
 function canRoomHaveDivider(room: Room) {
   return room.id.startsWith("room-1-k");
@@ -163,21 +164,33 @@ function App() {
     return fosterCats.filter((cat) => !cat.roomId);
   }, [fosterCats]);
 
-  const resettableShelterCats = useMemo(
-    () => visibleStatusCats.filter((cat) => !cat.inFoster),
-    [visibleStatusCats]
+  const resettableCats = useMemo(
+    () => displayCats,
+    [displayCats]
   );
 
   async function handleResetShelterluvRooms() {
-    if (!resettableShelterCats.length) return;
-    const dividerSideAssignments = getDividerSideAssignments(resettableShelterCats);
+    if (!resettableCats.length) return;
+    const dividerSideAssignments = getDividerSideAssignments(resettableCats);
+    const resettableKennelRooms = rooms.filter(canRoomHaveDivider);
 
-    const updates = resettableShelterCats.map((cat) => ({
+    const updates = resettableCats.map((cat) => ({
       ...cat,
       roomId: cat.shelterluvRoomId ?? null,
       dividerSide: dividerSideAssignments.get(cat.id) ?? null,
       manualRoomOverride: false,
     }));
+
+    setRooms((prev) =>
+      prev.map((room) =>
+        canRoomHaveDivider(room)
+          ? {
+            ...room,
+            dividerOverride: null,
+          }
+          : room
+      )
+    );
 
     setCats((prev) =>
       prev.map((cat) => {
@@ -188,14 +201,22 @@ function App() {
 
     try {
       await Promise.all(
-        updates.map((cat) =>
-          updateDoc(doc(db, "cats", cat.id), {
-            roomId: cat.shelterluvRoomId ?? null,
-            dividerSide: dividerSideAssignments.get(cat.id) ?? null,
-            manualRoomOverride: false,
-            updatedAt: new Date(),
-          })
-        )
+        [
+          ...updates.map((cat) =>
+            updateDoc(doc(db, "cats", cat.id), {
+              roomId: cat.shelterluvRoomId ?? null,
+              dividerSide: dividerSideAssignments.get(cat.id) ?? null,
+              manualRoomOverride: false,
+              updatedAt: new Date(),
+            })
+          ),
+          ...resettableKennelRooms.map((room) =>
+            updateDoc(doc(db, "rooms", room.id), {
+              dividerOverride: null,
+              updatedAt: new Date(),
+            })
+          ),
+        ]
       );
     } catch (error) {
       console.error("Failed to reset Shelterluv rooms", error);
@@ -265,7 +286,8 @@ function App() {
           const currentCatsInRoom = cats.filter(
             (c) => c.roomId === newRoomId && c.id !== active.id
           );
-          if (currentCatsInRoom.length >= ROOM_CAPACITY) {
+          const roomCapacity = canRoomHaveDivider(targetRoom) ? KENNEL_CAPACITY : ROOM_CAPACITY;
+          if (currentCatsInRoom.length >= roomCapacity) {
             setActiveCat(null);
             return; // Cancel drop
           }
@@ -376,7 +398,7 @@ function App() {
               <span>
                 <Button
                   onClick={handleResetShelterluvRooms}
-                  disabled={!resettableShelterCats.length}
+                  disabled={!resettableCats.length}
                   size="small"
                   variant="outlined"
                   sx={{
@@ -437,7 +459,7 @@ function App() {
               minHeight: 0,
               borderRadius: 16,
               padding: "0.5rem",
-              overflow: "hidden", // Ensure container strictly clips content and respects flex size
+              overflow: "auto",
               position: "relative",
             }}
           >
