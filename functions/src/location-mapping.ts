@@ -12,6 +12,10 @@ interface ShelterluvRoomAssignmentAnimal {
 
 const BEHAVIOR_STATUS = "Unavailable In-Shelter (Behavior)";
 
+function isBehaviorStatus(status?: string | null): boolean {
+    return status?.trim().toLowerCase() === BEHAVIOR_STATUS.toLowerCase();
+}
+
 const LOCATION_TO_ROOM_ID: Record<string, string> = {
     "Petco Room 1, Kennel 1": "room-1-k1",
     "Petco Room 1, Kennel 2": "room-1-k2",
@@ -60,20 +64,18 @@ function getDividerSideAssignments(
     const assignments = new Map<string, "left" | "right" | null>();
 
     for (const roomAnimals of animalsByRoomId.values()) {
-        const litterGroups = getDividerEligibleLitterGroups(roomAnimals).sort(
+        const litterGroups = getLitterGroups(roomAnimals).sort(
             ([aKey, aAnimals], [bKey, bAnimals]) => bAnimals.length - aAnimals.length || aKey.localeCompare(bKey)
         );
 
         if (litterGroups.length <= 1) {
-            if (
-                roomAnimals.length === 2 &&
-                roomAnimals.some((animal) => animal.Status === BEHAVIOR_STATUS)
-            ) {
-                const [leftAnimal, rightAnimal] = [...roomAnimals].sort((a, b) =>
+            if (roomAnimals.some((animal) => isBehaviorStatus(animal.Status))) {
+                const sortedRoomAnimals = [...roomAnimals].sort((a, b) =>
                     a.ID.toString().localeCompare(b.ID.toString())
                 );
-                assignments.set(leftAnimal.ID.toString(), "left");
-                assignments.set(rightAnimal.ID.toString(), "right");
+                for (const [index, animal] of sortedRoomAnimals.entries()) {
+                    assignments.set(animal.ID.toString(), index % 2 === 0 ? "left" : "right");
+                }
                 continue;
             }
 
@@ -108,18 +110,21 @@ function getDividerSideAssignments(
     return assignments;
 }
 
-function getDividerEligibleLitterGroups(animals: ShelterluvRoomAssignmentAnimal[]) {
+function getLitterGroups(animals: ShelterluvRoomAssignmentAnimal[]) {
     const animalsByLitterGroup = new Map<string, ShelterluvRoomAssignmentAnimal[]>();
     for (const animal of animals) {
         const key = getLitterGroupKey(animal);
         animalsByLitterGroup.set(key, [...(animalsByLitterGroup.get(key) ?? []), animal]);
     }
 
-    return Array.from(animalsByLitterGroup.entries()).filter(
-        ([, litterAnimals]) =>
-            litterAnimals.length > 1 ||
-            litterAnimals.some((animal) => animal.Status === BEHAVIOR_STATUS)
-    );
+    return Array.from(animalsByLitterGroup.entries());
+}
+
+function roomNeedsDivider(animals: ShelterluvRoomAssignmentAnimal[]): boolean {
+    if (animals.some((animal) => isBehaviorStatus(animal.Status))) return true;
+
+    const litterGroups = getLitterGroups(animals);
+    return litterGroups.length > 1;
 }
 
 export {
@@ -128,5 +133,6 @@ export {
     getLitterGroupKey,
     getRoomIdForShelterluvLocation,
     getShelterluvLocationLabel,
+    roomNeedsDivider,
     ShelterluvLocation,
 };

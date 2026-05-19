@@ -2,28 +2,29 @@ import type { Cat } from "./types/Cat";
 
 const BEHAVIOR_STATUS = "Unavailable In-Shelter (Behavior)";
 
+function isBehaviorStatus(status: string | null | undefined): boolean {
+  return status?.trim().toLowerCase() === BEHAVIOR_STATUS.toLowerCase();
+}
+
 export function getLitterGroupKey(cat: Pick<Cat, "id" | "litterGroupId">): string {
   return cat.litterGroupId ?? `cat:${cat.id}`;
 }
 
 export function roomNeedsDivider(cats: Cat[]): boolean {
-  const dividerEligibleGroups = getDividerEligibleLitterGroups(cats);
-  if (dividerEligibleGroups.length > 1) return true;
-  return cats.length === 2 && cats.some((cat) => cat.Status === BEHAVIOR_STATUS);
+  if (cats.some((cat) => isBehaviorStatus(cat.Status))) return true;
+
+  const litterGroups = getLitterGroups(cats);
+  return litterGroups.length > 1;
 }
 
-function getDividerEligibleLitterGroups(cats: Cat[]) {
+function getLitterGroups(cats: Cat[]) {
   const catsByLitterGroup = new Map<string, Cat[]>();
   for (const cat of cats) {
     const key = getLitterGroupKey(cat);
     catsByLitterGroup.set(key, [...(catsByLitterGroup.get(key) ?? []), cat]);
   }
 
-  return Array.from(catsByLitterGroup.entries()).filter(
-    ([, litterCats]) =>
-      litterCats.length > 1 ||
-      litterCats.some((cat) => cat.Status === BEHAVIOR_STATUS)
-  );
+  return Array.from(catsByLitterGroup.entries());
 }
 
 export function getDividerSideAssignments(
@@ -42,15 +43,16 @@ export function getDividerSideAssignments(
   const assignments = new Map<string, "left" | "right" | null>();
 
   for (const roomCats of catsByRoomId.values()) {
-    const litterGroups = getDividerEligibleLitterGroups(roomCats).sort(
+    const litterGroups = getLitterGroups(roomCats).sort(
       ([aKey, aCats], [bKey, bCats]) => bCats.length - aCats.length || aKey.localeCompare(bKey)
     );
 
     if (litterGroups.length <= 1) {
-      if (roomCats.length === 2 && roomCats.some((cat) => cat.Status === BEHAVIOR_STATUS)) {
-        const [leftCat, rightCat] = [...roomCats].sort((a, b) => a.id.localeCompare(b.id));
-        assignments.set(leftCat.id, "left");
-        assignments.set(rightCat.id, "right");
+      if (roomCats.some((cat) => isBehaviorStatus(cat.Status))) {
+        const sortedRoomCats = [...roomCats].sort((a, b) => a.id.localeCompare(b.id));
+        for (const [index, cat] of sortedRoomCats.entries()) {
+          assignments.set(cat.id, index % 2 === 0 ? "left" : "right");
+        }
         continue;
       }
 
