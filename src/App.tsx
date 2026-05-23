@@ -18,7 +18,10 @@ import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 
 const MINIMUM_AGE_SECONDS = (7 * 7 + 3) * 24 * 60 * 60;
-const EXCLUDED_SHELTERLUV_STATUS = "Unavailable In-Foster (Underage)";
+const EXCLUDED_SHELTERLUV_STATUSES = new Set([
+  "Unavailable In-Foster (Underage)",
+  "Unavailable In-Foster (Nursing Mom)",
+]);
 const ROOM_CAPACITY = 16;
 const KENNEL_SIDE_CAPACITY = 6;
 const KENNEL_CAPACITY = KENNEL_SIDE_CAPACITY * 2;
@@ -141,7 +144,7 @@ function App() {
 
   const displayCats = useMemo(
     () => visibleStatusCats.filter(
-      (cat) => cat.Status !== EXCLUDED_SHELTERLUV_STATUS && isAtLeastMinimumAge(cat)
+      (cat) => !EXCLUDED_SHELTERLUV_STATUSES.has(cat.Status ?? "") && isAtLeastMinimumAge(cat)
     ),
     [visibleStatusCats, isAtLeastMinimumAge]
   );
