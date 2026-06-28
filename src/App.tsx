@@ -21,6 +21,7 @@ const MINIMUM_AGE_SECONDS = (7 * 7 + 3) * 24 * 60 * 60;
 const EXCLUDED_SHELTERLUV_STATUSES = new Set([
   "Unavailable In-Foster (Underage)",
   "Unavailable In-Foster (Nursing Mom)",
+  "Unavailable In-Foster (Medical)",
 ]);
 const ROOM_CAPACITY = 16;
 const KENNEL_SIDE_CAPACITY = 6;
